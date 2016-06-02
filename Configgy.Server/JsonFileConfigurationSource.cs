@@ -12,13 +12,15 @@ namespace Configgy.Server
     {
         private string _baseDirectory;
         private string _filesFilter;
+        private ILogger _logger;
 
-        public JsonFileConfigurationSource(string baseDirectory, string filesFilter = "*.json")
+        public JsonFileConfigurationSource(string baseDirectory, string filesFilter, ILogger logger)
         {
             if (baseDirectory == null) throw new ArgumentNullException("baseDirectory");
             if (filesFilter == null) throw new ArgumentNullException("filesFilter");
 
             _filesFilter = filesFilter;
+            _logger = logger;
 
             try
             {
@@ -51,12 +53,26 @@ namespace Configgy.Server
             return result;
         }
 
-        internal object ParseFile(string path)
+        internal IDictionary<string, object> ParseFile(string path)
         {
             using (var reader = new StreamReader(path))
             using (var jsonReader = new JsonTextReader(reader))
             {
-                return new JsonSerializer().Deserialize<Dictionary<string, object>>(jsonReader);
+                try
+                {
+                    var configurationSet = new JsonSerializer().Deserialize<Dictionary<string, object>>(jsonReader);
+
+                    if (configurationSet != null) return configurationSet;
+
+                    _logger.Warning("File " + path + " is empty");
+
+                    return new Dictionary<string, object>();
+                }
+                catch (JsonReaderException ex)
+                {
+                    _logger.Error("Error reading file " + path + ". Ignoring configuration set contents", ex);
+                    return new Dictionary<string, object>();
+                }
             }
         }
 

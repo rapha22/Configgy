@@ -8,8 +8,11 @@ using StackExchange.Redis;
 
 namespace Configgy.Server
 {
-    public class RedisStorageMonitor
+    public class RedisStorageMonitor : IDisposable
     {
+        private const int DefaultPulseCheckInterval = 5000;
+        private const int DefaultEventDelayingTime = 1000;
+
         private ConnectionMultiplexer _redisConnectionMultiplexer;
         private RedisKeyBuilder _keyBuilder;
 
@@ -17,18 +20,27 @@ namespace Configgy.Server
         private readonly string _pulseKey;
         private Timer _pulseChecker;
         private Action _actionOnChange;
+        private EventDelayer _eventDelayer;
 
-        public RedisStorageMonitor(ConnectionMultiplexer redisConnectionMultiplexer, RedisKeyBuilder keyBuilder, Action actionOnChange, int pulseCheckInterval = 5000)
+        public RedisStorageMonitor(
+            ConnectionMultiplexer redisConnectionMultiplexer,
+            RedisKeyBuilder keyBuilder,
+            Action actionOnChange,
+            int pulseCheckIntervalMs = DefaultPulseCheckInterval,
+            int eventDelayingMs = DefaultEventDelayingTime
+        )
         {
             _redisConnectionMultiplexer = redisConnectionMultiplexer;
             _keyBuilder = keyBuilder;
             _actionOnChange = actionOnChange;
 
             _pulseKey = _keyBuilder.BuildKey("pulse");
-            _pulseChecker = CreatePulseChecker(pulseCheckInterval);
+            _pulseChecker = CreatePulseChecker(pulseCheckIntervalMs);
 
             var channelPattern = "__keyspace@0__:" + _keyBuilder.BuildKey("*");
             _channel = new RedisChannel(channelPattern, RedisChannel.PatternMode.Pattern);
+
+            _eventDelayer = new EventDelayer(eventDelayingMs, false);
         }
 
         public void Start()
@@ -39,7 +51,7 @@ namespace Configgy.Server
                 .GetSubscriber()
                 .Subscribe(
                     _channel,
-                    (channel, value) => _actionOnChange()
+                    (channel, value) => _eventDelayer.Trigger(_actionOnChange)
                 );
         }
 
@@ -65,17 +77,23 @@ namespace Configgy.Server
 
                 if (!redis.KeyExists(_pulseKey))
                 {
-                    _actionOnChange();
+                    _eventDelayer.Trigger(_actionOnChange);
                 }
             };
 
             return pulseChecker;
         }
 
-        private void StartPulseChecker()
+        internal void StartPulseChecker()
         {
             _redisConnectionMultiplexer.GetDatabase().StringSet(_pulseKey, true);
             _pulseChecker.Start();
+        }
+
+        public void Dispose()
+        {
+            Stop();
+            _pulseChecker.Dispose();
         }
     }
 }

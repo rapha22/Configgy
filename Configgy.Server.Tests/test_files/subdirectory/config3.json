@@ -1,0 +1,10 @@
+﻿{
+    "!_parent_!": "config1",
+    "name": "Spongebob Squarepants",
+
+    "address": {
+        "street": "Pineapple Avenue",
+        "number": 3,
+        "reference": "Beside my good friend Squidward"
+    }
+}

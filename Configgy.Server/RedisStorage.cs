@@ -48,6 +48,7 @@ namespace Configgy.Server
 
         public void Dispose()
         {
+            _monitor.Dispose();
             _redisConnectionMultiplexer.Dispose();
         }
 

@@ -1,48 +1,51 @@
 ﻿using System;
-using Fclp;
-using StackExchange.Redis;
-using Newtonsoft.Json;
 using System.IO;
-using Configgy.Server;
 using System.Threading;
+using System.Threading.Tasks;
+using Configgy.Server;
+using Fclp;
+using Newtonsoft.Json;
 
 namespace Configgy
 {
     class Program
     {
-        static ConfiggyServer _configgyServer;
+        static ConfiggyServer _server;
 
         static void Main(string[] args)
         {
+            var logger = new ConsoleLogger();
+
             try
             {
                 ShowTitle();
 
-                var options = ParseArguments(args);                
+                var options = ParseArguments(args);
 
-                new Thread(() =>
-                {
-                    _configgyServer = new ConfiggyServer(options, Log);
-                    _configgyServer.Start();
-                })
-                .Start();
+                _server = new ConfiggyServer(options, logger);
 
+                Task.Factory.StartNew(
+                    () => _server.Start(),
+                    TaskCreationOptions.LongRunning
+                )
+                .ContinueWith(
+                    t => logger.Error(t.Exception),
+                    TaskContinuationOptions.OnlyOnFaulted
+                );
+
+                WaitForBreakSignal();
+
+                logger.Info("Terminating program, press any key to continue...");
                 Console.ReadLine();
-
-                _configgyServer.Dispose();
             }
             catch (Exception ex)
             {
-                var previousColor = Console.ForegroundColor;
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("ERROR: " + ex.Message);
-                Console.ForegroundColor = previousColor;
+                logger.Error(null, ex);
             }
-        }
-
-        static void Log(string message)
-        {
-            Console.WriteLine("[{0:dd/MM/yyyy HH:mm:ss.fff}] {1}", DateTime.Now, message);
+            finally
+            {
+                _server.Dispose();
+            }
         }
 
         static void ShowTitle()
@@ -91,6 +94,8 @@ namespace Configgy
 
             if (result.HasErrors)
             {
+                Console.WriteLine("Invalid parameters:");
+                Console.WriteLine(result.Errors);
                 p.HelpOption.ShowHelp(p.Options);
                 Environment.Exit(0);
             }
@@ -114,6 +119,19 @@ namespace Configgy
             {
                 throw new Exception("Error reading configuration file: " + ex.Message, ex);
             }
+        }
+
+        static void WaitForBreakSignal()
+        {
+            var quitEvent = new ManualResetEvent(false);
+
+            Console.CancelKeyPress += (sender, ev) =>
+            {
+                ev.Cancel = true;
+                quitEvent.Set();
+            };
+
+            quitEvent.WaitOne();
         }
     }
 }

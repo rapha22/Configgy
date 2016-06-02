@@ -16,17 +16,17 @@ namespace Configgy.Server
         private ConfigurationSpaceMerger _merger;
         private RedisStorage _redisStorage;
         private ConfigurationFilesMonitor _filesMonitor;
-        private Action<string> _log;
+        private ILogger _logger;
         private bool _started = false;
 
-        public ConfiggyServer(ConfiggyServerOptions options, Action<string> log)
+        public ConfiggyServer(ConfiggyServerOptions options, ILogger logger)
         {
             _options = options;
-            _configSource = new JsonFileConfigurationSource(options.ConfigurationFilesDirectory, options.FilesFilter);
+            _configSource = new JsonFileConfigurationSource(options.ConfigurationFilesDirectory, options.FilesFilter, logger);
             _merger = new ConfigurationSpaceMerger();
             _redisStorage = new RedisStorage(options.RedisConnectionString, options.Prefix);
             _filesMonitor = new ConfigurationFilesMonitor(options.ConfigurationFilesDirectory, options.FilesFilter);
-            _log = log;
+            _logger = logger;
         }
 
         public void Start()
@@ -37,7 +37,7 @@ namespace Configgy.Server
                 _started = true;
             }
 
-            _log("Starting monitoring");
+            _logger.Info("Starting monitoring");
 
             BuildConfigurationSpace();
             MonitorChanges();
@@ -45,33 +45,33 @@ namespace Configgy.Server
 
         public void BuildConfigurationSpace()
         {
-            _log("Starting configuration space build");
+            _logger.Info("Starting configuration space build");
 
             var baseConfigurationSpace = _configSource.GetBaseConfigurationSpace();
             var cs = _merger.CreateMergedConfigurationSpace(baseConfigurationSpace);
             _redisStorage.UploadConfigurationSpace(cs);
 
-            _log("Configuration space building done");
+            _logger.Info("Configuration space building done");
         }
 
         internal void MonitorChanges()
         {
             _redisStorage.MonitorChanges(() =>
             {
-                _log("Changes on Redis dataset detected");
+                _logger.Info("Changes on Redis dataset detected");
                 BuildConfigurationSpace();
             });
             
             _filesMonitor.MonitorChanges(() =>
             {
-                _log("File changes detected");
+                _logger.Info("File changes detected");
                 BuildConfigurationSpace();
             });
         }
 
         public void Dispose()
         {
-            _log("Disposing Configgy server");
+            _logger.Info("Disposing Configgy server");
 
             _redisStorage.Dispose();
             _filesMonitor.Dispose();
