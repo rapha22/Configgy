@@ -47,17 +47,21 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ConfiggyException.cs" />
     <Compile Include="ConfiggyServer.cs" />
     <Compile Include="ConfiggyServerOptions.cs" />
     <Compile Include="ConfigurationFilesMonitor.cs" />
     <Compile Include="ConfigurationSpaceMerger.cs" />
     <Compile Include="EventDelayer.cs" />
+    <Compile Include="GenericExceptionHandler.cs" />
     <Compile Include="ILogger.cs" />
     <Compile Include="JsonFileConfigurationSource.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RedisKeyBuilder.cs" />
     <Compile Include="RedisStorage.cs" />
+    <Compile Include="RedisStorageChangeMonitor.cs" />
     <Compile Include="RedisStorageMonitor.cs" />
+    <Compile Include="RedisStoragePulseMonitor.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

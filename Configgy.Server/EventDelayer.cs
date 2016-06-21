@@ -41,13 +41,24 @@ namespace Configgy.Server
 
         private void TriggerAction()
         {
-            lock (_lock)
+            try
             {
-                if (_action == null) return;
+                lock (_lock)
+                {
+                    if (_action == null) return;
 
-                _action();
-                _action = null;
-                _timer.Stop();
+                    try { _action(); }
+                    catch { throw; }
+                    finally
+                    {
+                        _action = null;
+                        _timer.Stop();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                GenericExceptionHandler.Handle(ex);
             }
         }
     }

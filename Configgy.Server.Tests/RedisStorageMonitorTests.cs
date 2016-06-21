@@ -34,17 +34,19 @@ namespace Configgy.Server.Tests
                 monitor = new RedisStorageMonitor(
                     redisHub,
                     keyBuilder,
-                    AsyncHelper.CreateCompletionTaskAction(out containerTask)
+                    new StubLogger()
                 );
 
+                monitor.DataSetChanged += AsyncHelper.CreateCompletionTaskAction(out containerTask);
                 monitor.Start();
 
                 redisHub.GetDatabase().StringSet(keyBuilder.BuildKey(initialKey), "fist value");
             }
 
-            public void Dispose()
+            public override void Dispose()
             {
                 monitor.Dispose();
+                base.Dispose();
             }
 
             [Fact]
@@ -76,6 +78,8 @@ namespace Configgy.Server.Tests
             {
                 var keyBuilder = new RedisKeyBuilder("WhenAddingAValue_ShouldTriggerHandlerAction");
 
+                SetupMonitorWithInitialKey(keyBuilder);
+
                 var key = keyBuilder.BuildKey("new-value-key");
                 redisHub.GetDatabase().StringSet(key, "new value");
 
@@ -102,12 +106,13 @@ namespace Configgy.Server.Tests
                 monitor = new RedisStorageMonitor(
                     redisHub,
                     keyBuilder,
-                    () => triggered = true,
+                    new StubLogger(),
                     pulseCheckIntervalMs: 100,
                     eventDelayingMs: 200
                 );
 
-                monitor.StartPulseChecker();
+                monitor.DataSetChanged += () => triggered = true;
+                monitor.Start();
 
                 Task.Delay(600).Wait();
 
@@ -122,12 +127,13 @@ namespace Configgy.Server.Tests
                 monitor = new RedisStorageMonitor(
                     redisHub,
                     keyBuilder,
-                    () => triggered = true,
+                    new StubLogger(),
                     pulseCheckIntervalMs: 100,
                     eventDelayingMs: 200
                 );
 
-                monitor.StartPulseChecker();
+                monitor.DataSetChanged += () => triggered = true;
+                monitor.Start();
 
                 RedisHelper.RemoveKeys(redisHub, keyBuilder.BuildKey("*"));
 
@@ -156,10 +162,11 @@ namespace Configgy.Server.Tests
                 monitor = new RedisStorageMonitor(
                     redisHub,
                     keyBuilder,
-                    () => triggered = true,
+                    new StubLogger(),
                     pulseCheckIntervalMs: 250
                 );
 
+                monitor.DataSetChanged += () => triggered = true;
                 monitor.Start();            
             }
 

@@ -1,11 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using Newtonsoft.Json;
-using StackExchange.Redis;
 
 namespace Configgy.Server
 {
@@ -19,42 +12,75 @@ namespace Configgy.Server
         private ILogger _logger;
         private bool _started = false;
 
+
         public ConfiggyServer(ConfiggyServerOptions options, ILogger logger)
         {
             _options = options;
             _configSource = new JsonFileConfigurationSource(options.ConfigurationFilesDirectory, options.FilesFilter, logger);
             _merger = new ConfigurationSpaceMerger();
-            _redisStorage = new RedisStorage(options.RedisConnectionString, options.Prefix);
-            _filesMonitor = new ConfigurationFilesMonitor(options.ConfigurationFilesDirectory, options.FilesFilter);
+            _redisStorage = new RedisStorage(options.RedisConnectionString, logger, options.Prefix);
+            _filesMonitor = new ConfigurationFilesMonitor(options.ConfigurationFilesDirectory, options.FilesFilter, logger);
             _logger = logger;
+
+            GenericExceptionHandler.Initialize(logger);
         }
+
 
         public void Start()
         {
-            lock (this)
+            try
             {
-                if (_started) throw new InvalidOperationException("The server is already started.");
-                _started = true;
+                lock (this)
+                {
+                    if (_started) throw new InvalidOperationException("The server is already started.");
+                    _started = true;
+                }
+
+                _logger.Info("Starting monitoring");
+
+                MonitorChanges();
+                BuildConfigurationSpace();
             }
+            catch (Exception ex)
+            {
+                GenericExceptionHandler.Handle(
+                    new ConfiggyException("Error starting Configgy server", ex)
+                );
 
-            _logger.Info("Starting monitoring");
-
-            BuildConfigurationSpace();
-            MonitorChanges();
+                throw;
+            }
         }
 
-        public void BuildConfigurationSpace()
+        public void Dispose()
+        {
+            _logger.Info("Disposing Configgy server");
+
+            _redisStorage.Dispose();
+            _filesMonitor.Dispose();
+        }
+
+
+        private void BuildConfigurationSpace()
         {
             _logger.Info("Starting configuration space build");
 
-            var baseConfigurationSpace = _configSource.GetBaseConfigurationSpace();
-            var cs = _merger.CreateMergedConfigurationSpace(baseConfigurationSpace);
-            _redisStorage.UploadConfigurationSpace(cs);
+            try
+            {
+                var baseConfigurationSpace = _configSource.GetBaseConfigurationSpace();
+                var cs = _merger.CreateMergedConfigurationSpace(baseConfigurationSpace);
+                _redisStorage.UploadConfigurationSpace(cs);
 
-            _logger.Info("Configuration space building done");
+                _logger.Info("Configuration space building done");
+            }
+            catch (Exception ex)
+            {
+                GenericExceptionHandler.Handle(
+                    new ConfiggyException("Error building configuration space. Maintaining current build. Please fix the issue for the build to complete.", ex)
+                );
+            }
         }
 
-        internal void MonitorChanges()
+        private void MonitorChanges()
         {
             _redisStorage.MonitorChanges(() =>
             {
@@ -67,14 +93,6 @@ namespace Configgy.Server
                 _logger.Info("File changes detected");
                 BuildConfigurationSpace();
             });
-        }
-
-        public void Dispose()
-        {
-            _logger.Info("Disposing Configgy server");
-
-            _redisStorage.Dispose();
-            _filesMonitor.Dispose();
         }
     }
 }

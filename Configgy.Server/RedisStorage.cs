@@ -15,8 +15,9 @@ namespace Configgy.Server
         private RedisStorageMonitor _monitor;
         private RedisKeyBuilder _keyBuilder;
         private int _pulseCheckInterval;
+        private ILogger _logger;
 
-        public RedisStorage(string redisConnectionString, string prefix = null, int pulseCheckInterval = 5000)
+        public RedisStorage(string redisConnectionString, ILogger logger, string prefix = null, int pulseCheckInterval = 5000)
         {
             if (redisConnectionString == null) throw new ArgumentNullException("redisConnectionString");
 
@@ -26,6 +27,7 @@ namespace Configgy.Server
             _redisConnectionMultiplexer = ConnectionMultiplexer.Connect(redisOptions);
             _keyBuilder = new RedisKeyBuilder(prefix);
             _pulseCheckInterval = pulseCheckInterval;
+            _logger = logger;
         }
 
         public void UploadConfigurationSpace(IDictionary<string, object> configurationSpace)
@@ -42,7 +44,8 @@ namespace Configgy.Server
 
         public void MonitorChanges(Action actionOnChange)
         {
-            _monitor = new RedisStorageMonitor(_redisConnectionMultiplexer, _keyBuilder, actionOnChange, _pulseCheckInterval);
+            _monitor = new RedisStorageMonitor(_redisConnectionMultiplexer, _keyBuilder, _logger, _pulseCheckInterval);
+            _monitor.DataSetChanged += actionOnChange;
             _monitor.Start();
         }
 

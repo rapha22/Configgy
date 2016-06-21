@@ -12,25 +12,25 @@ namespace Configgy.Server.Tests
             [Fact]
             public void WhenPassingNullBasePath_ShouldThrow()
             {
-                Assert.Throws<ArgumentException>(() => new ConfigurationFilesMonitor(null, "x"));
+                Assert.Throws<ArgumentException>(() => new ConfigurationFilesMonitor(null, "x", new StubLogger()));
             }
 
             [Fact]
             public void WhenPassingEmptyBasePath_ShouldThrow()
             {
-                Assert.Throws<ArgumentException>(() => new ConfigurationFilesMonitor("", "x"));
+                Assert.Throws<ArgumentException>(() => new ConfigurationFilesMonitor("", "x", new StubLogger()));
             }
 
             [Fact]
             public void WhenPassingNullFilesFilter_ShouldThrow()
             {
-                Assert.Throws<ArgumentException>(() => new ConfigurationFilesMonitor("x", null));
+                Assert.Throws<ArgumentException>(() => new ConfigurationFilesMonitor("x", null, new StubLogger()));
             }
 
             [Fact]
             public void WhenEmptyNullFilesFilter_ShouldThrow()
             {
-                Assert.Throws<ArgumentException>(() => new ConfigurationFilesMonitor("x", ""));
+                Assert.Throws<ArgumentException>(() => new ConfigurationFilesMonitor("x", "", new StubLogger()));
             }
         }
 
@@ -46,7 +46,7 @@ namespace Configgy.Server.Tests
 
             public DirectoryMonitoring()
             {
-                monitor = new ConfigurationFilesMonitor(basePath, filesFilter, eventDelayingMs: 300);
+                monitor = new ConfigurationFilesMonitor(basePath, filesFilter, new StubLogger(), eventDelayingMs: 300);
             }
 
             public void Dispose()

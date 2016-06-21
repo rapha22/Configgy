@@ -66,6 +66,7 @@
     <Compile Include="ConfigurationFilesMonitorTests.cs" />
     <Compile Include="ConfigurationSpaceMergerTests.cs" />
     <Compile Include="EventDelayerTests.cs" />
+    <Compile Include="GenericExceptionHandlerTests.cs" />
     <Compile Include="Helpers.cs" />
     <Compile Include="Integration_ParsingAndMerging.cs" />
     <Compile Include="JsonFileConfigurationSourceTests.cs" />

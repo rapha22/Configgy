@@ -1,10 +1,7 @@
 ﻿using System;
-using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Configgy.Server;
-using Fclp;
-using Newtonsoft.Json;
 
 namespace Configgy
 {
@@ -20,7 +17,7 @@ namespace Configgy
             {
                 ShowTitle();
 
-                var options = ParseArguments(args);
+                var options = Configuration.GetOptions(args);
 
                 _server = new ConfiggyServer(options, logger);
 
@@ -34,9 +31,6 @@ namespace Configgy
                 );
 
                 WaitForBreakSignal();
-
-                logger.Info("Terminating program, press any key to continue...");
-                Console.ReadLine();
             }
             catch (Exception ex)
             {
@@ -44,81 +38,15 @@ namespace Configgy
             }
             finally
             {
-                _server.Dispose();
+                if (_server != null) _server.Dispose();
             }
+
+            logger.Info("Terminating program");
         }
 
         static void ShowTitle()
         {
             Console.WriteLine("Configgy: Easy, shared configuration\n");
-        }
-
-        static ConfiggyServerOptions ParseArguments(string[] args)
-        {
-            var options = ReadConfigurationFile(args);
-
-            if (options != null) return options;
-
-            var p = new FluentCommandLineParser<ConfiggyServerOptions>();
-
-            p.Setup(x => x.ConfigurationFilesDirectory)
-                .As('d')
-                .WithDescription("Path of the directory containing the configuration files (the app will search recursively)")
-                .Required();
-
-            p.Setup(x => x.RedisConnectionString)
-                .As('r', "redis")
-                .WithDescription("Redis connection string")                
-                .Required();
-
-            p.Setup(x => x.FilesFilter)
-                .As("files-filter")
-                .WithDescription("File system filter that will be used to search the files within the base path (default *.json)")                
-                .SetDefault("*.json");
-
-            p.Setup(x => x.Prefix)
-                .As("prefix")
-                .WithDescription("Optional prefix for the configuration IDs on the database");
-                
-
-            p.SetupHelp("?", "h", "help")
-                .Callback(x =>
-                {
-                    Console.WriteLine("usage:");
-                    Console.WriteLine("\tconfiggy <configuration_file_path>");
-                    Console.WriteLine("\tconfiggy -d <base_directory> (-r | redis) <redis_connection_string> [--files-filter <filter_string>] [--prefix <prefix>]");
-                    Console.WriteLine(x);
-                });
-
-            var result = p.Parse(args);
-
-            if (result.HasErrors)
-            {
-                Console.WriteLine("Invalid parameters:");
-                Console.WriteLine(result.Errors);
-                p.HelpOption.ShowHelp(p.Options);
-                Environment.Exit(0);
-            }
-
-            return p.Object;
-        }
-
-        static ConfiggyServerOptions ReadConfigurationFile(string[] args)
-        {
-            if (args.Length != 1) return null;
-
-            try
-            {
-                using (var reader = new StreamReader(args[0]))
-                using (var jsonReader = new JsonTextReader(reader))
-                {
-                    return new JsonSerializer().Deserialize<ConfiggyServerOptions>(jsonReader);
-                }
-            }
-            catch (Exception ex)
-            {
-                throw new Exception("Error reading configuration file: " + ex.Message, ex);
-            }
         }
 
         static void WaitForBreakSignal()

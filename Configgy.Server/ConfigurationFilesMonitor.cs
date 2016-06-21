@@ -15,18 +15,20 @@ namespace Configgy.Server
         private string _basePath;
         private FileSystemWatcher _watcher;
         private EventDelayer _eventDelayer;
+        private ILogger _logger;
 
         public bool IsMonitoring
         {
             get { return _watcher.EnableRaisingEvents; }
         }
 
-        public ConfigurationFilesMonitor(string basePath, string filesFilter, int eventDelayingMs = DefaultEventDelayTime)
+        public ConfigurationFilesMonitor(string basePath, string filesFilter, ILogger logger, int eventDelayingMs = DefaultEventDelayTime)
         {
             if (string.IsNullOrEmpty(basePath)) throw new ArgumentException("The basePath must be provided.", "basePath");
             if (string.IsNullOrEmpty(filesFilter)) throw new ArgumentException("The filesFilter must be provided.", "filesFilter");
 
             _basePath = basePath;
+            _logger = logger;
 
             _watcher = new FileSystemWatcher(basePath, filesFilter)
             {
@@ -42,12 +44,26 @@ namespace Configgy.Server
             if (_watcher.EnableRaisingEvents)
                 throw new InvalidOperationException("The watcher is already monitoring changes.");
 
-            _watcher.Created += (_, __) => _eventDelayer.Trigger(actionOnChange);
-            _watcher.Changed += (_, __) => _eventDelayer.Trigger(actionOnChange);
-            _watcher.Renamed += (_, __) => _eventDelayer.Trigger(actionOnChange);
-            _watcher.Deleted += (_, __) => _eventDelayer.Trigger(actionOnChange);
+            _watcher.Created += CreateHandler(actionOnChange);
+            _watcher.Changed += CreateHandler(actionOnChange);
+            _watcher.Deleted += CreateHandler(actionOnChange);
+
+            _watcher.Renamed += (_, ev) =>
+            {
+                _logger.Info(string.Format("File event detected: Renamed {0} to {1} (full path: {2})", ev.OldName, ev.Name, ev.FullPath));
+                _eventDelayer.Trigger(actionOnChange);
+            };
 
             _watcher.EnableRaisingEvents = true;
+        }
+
+        private FileSystemEventHandler CreateHandler(Action onChange)
+        {
+            return (_, ev) =>
+            {
+                _logger.Info(string.Format("File event detected: {0} {1}", ev.ChangeType, ev.FullPath));
+                _eventDelayer.Trigger(onChange);
+            };
         }
 
         public void Dispose()

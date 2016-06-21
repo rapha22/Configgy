@@ -34,7 +34,7 @@ namespace Configgy.Server.Tests
         public void WhenUploadingConfigurationSpace()
         {
             var keyBuilder = new RedisKeyBuilder(prefix);
-            var redisStorage = new RedisStorage(host, prefix);
+            var redisStorage = new RedisStorage(host, new StubLogger(), prefix);
             var redis = redisHub.GetDatabase();
             var testKey = keyBuilder.BuildKey("test_key");
             var configurationSpace = new Dictionary<string, object>
