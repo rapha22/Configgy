@@ -1,4 +1,5 @@
 ﻿using System;
+using Configgy.Common;
 using StackExchange.Redis;
 
 namespace Configgy.Server

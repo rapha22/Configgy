@@ -1,4 +1,4 @@
-﻿namespace Configgy.Server
+﻿namespace Configgy.Common
 {
     public class RedisKeyBuilder
     {
@@ -12,7 +12,7 @@
             _prefix = prefix;
         }
 
-        internal string BuildKey(string partialKey)
+        public string BuildKey(string partialKey)
         {
             if (!string.IsNullOrEmpty(_prefix))
                 return string.Join(PrefixSeparator, GlobalPrefix, _prefix, partialKey);

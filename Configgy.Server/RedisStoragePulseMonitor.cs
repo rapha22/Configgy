@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Timers;
+using Configgy.Common;
 using StackExchange.Redis;
 
 namespace Configgy.Server

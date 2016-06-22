@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Configgy.Common;
 using StackExchange.Redis;
 using Xunit;
 
