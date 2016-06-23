@@ -59,7 +59,7 @@ namespace Configgy.Server.Tests
 
                 redisHub.GetDatabase().KeyDelete(keyBuilder.BuildKey(initialKey));
 
-                Assert.True(containerTask.Result);
+                Assert.True(containerTask.Result(2000));
             }
 
             [Fact]
@@ -71,7 +71,7 @@ namespace Configgy.Server.Tests
 
                 redisHub.GetDatabase().StringSet(keyBuilder.BuildKey(initialKey), "new value");
 
-                Assert.True(containerTask.Result);
+                Assert.True(containerTask.Result(2000));
             }
 
             [Fact] 
@@ -84,7 +84,7 @@ namespace Configgy.Server.Tests
                 var key = keyBuilder.BuildKey("new-value-key");
                 redisHub.GetDatabase().StringSet(key, "new value");
 
-                Assert.True(containerTask.Result);
+                Assert.True(containerTask.Result(2000));
             }
         }
 

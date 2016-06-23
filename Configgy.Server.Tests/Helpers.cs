@@ -20,7 +20,7 @@ namespace Configgy.Server.Tests
         }
     }
 
-    public class AsyncHelper
+    public static class AsyncHelper
     {
         public static Action CreateCompletionTaskAction(out Task<bool> task)
         {
@@ -41,6 +41,15 @@ namespace Configgy.Server.Tests
             var tcs = new TaskCompletionSource<bool>();
             method(ms, () => tcs.SetResult(true));
             return tcs.Task;
+        }
+
+        public static bool Result(this Task<bool> completionTask, int millisecondsTimeout)
+        {
+            Task.WaitAny(completionTask, Task.Delay(millisecondsTimeout));
+            if (completionTask.IsCompleted)
+                return completionTask.Result;
+            else
+                throw new TimeoutException("The given task took more than " + millisecondsTimeout + "milliseconds to complete.");
         }
     }
 

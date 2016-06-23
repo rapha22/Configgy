@@ -54,7 +54,7 @@ namespace Configgy.Server.Tests
                 monitor.Dispose();
 
                 //Cleanup AFTER disposing the monitor. Otherwise, it will generate exceptions for
-                //triggering events and trying to set the task again
+                //triggering events and trying to set the same task more than once
                 cleanup(); 
             }
 
@@ -68,7 +68,11 @@ namespace Configgy.Server.Tests
 
                 Assert.True(wasTriggered.Result);
 
-                cleanup = () => File.OpenWrite("content_change.txt").Write(new byte[0], 0, 0);
+                cleanup = () =>
+                {
+                    using (var file = File.OpenWrite("content_change.txt"))
+                        file.Write(new byte[0], 0, 0);
+                };
             }
 
             [Fact]
@@ -78,7 +82,7 @@ namespace Configgy.Server.Tests
 
                 File.Move(PathTo("renaming.txt"), PathTo("renamed.txt"));
 
-                Assert.True(wasTriggered.Result);
+                Assert.True(wasTriggered.Result(1000));
 
                 //Cleanup
                 cleanup = () => File.Move(PathTo("renamed.txt"), PathTo("renaming.txt"));
@@ -91,10 +95,10 @@ namespace Configgy.Server.Tests
 
                 File.Delete(PathTo("deleting.txt"));
 
-                Assert.True(wasTriggered.Result);
+                Assert.True(wasTriggered.Result(1000));
 
                 //Cleanup
-                cleanup = () => File.Create(PathTo("deleting.txt"));
+                cleanup = () => { using (File.Create(PathTo("deleting.txt"))); };
             }
 
             [Fact]
@@ -102,9 +106,9 @@ namespace Configgy.Server.Tests
             {
                 monitor.MonitorChanges(AsyncHelper.CreateCompletionTaskAction(out wasTriggered));
 
-                File.Create(PathTo("new.txt"));
+                using (File.Create(PathTo("new.txt")));
 
-                Assert.True(wasTriggered.Result);
+                Assert.True(wasTriggered.Result(1000));
 
                 //Cleanup
                 cleanup = () => File.Delete(PathTo("new.txt"));
