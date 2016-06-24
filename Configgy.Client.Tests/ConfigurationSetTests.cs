@@ -7,13 +7,13 @@ namespace Configgy.Client.Tests
         [Fact]
         public void Get_ShouldExposeUnderlyingData()
         {
-            var data = new { Prop1 = "test", Prop2 = new { Name = "terrible!" } };
-            var set = new ConfigurationSet(data);
+            var content = @"{ ""Prop1"": ""test"", ""Prop2"": { Name: ""terrible!""} }";
+            var set = new ConfigurationSet(content, new JsonConfigurationSetParser());
 
             dynamic underlyingData = set.Get();
 
-            Assert.Equal(data.Prop1, (string)underlyingData.Prop1);
-            Assert.Equal(data.Prop2.Name, (string)underlyingData.Prop2.Name);
+            Assert.Equal("test", (string)underlyingData.Prop1);
+            Assert.Equal("terrible!", (string)underlyingData.Prop2.Name);
         }
     }
 }

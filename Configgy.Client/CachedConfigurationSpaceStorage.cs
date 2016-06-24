@@ -5,26 +5,17 @@ namespace Configgy.Client
     internal class CachedConfigurationSpaceStorage : IConfigurationSpaceStorage
     {
         private IConfigurationSpaceStorage _underlyingStorage;
-        private IServerMonitor _serverMonitor;
-        private ConcurrentDictionary<string, object> _cache = new ConcurrentDictionary<string,object>();
+        private ConcurrentDictionary<string, string> _cache = new ConcurrentDictionary<string, string>();
 
         internal CachedConfigurationSpaceStorage(IConfigurationSpaceStorage storage, IServerMonitor serverMonitor)
         {
             _underlyingStorage = storage;
-            _serverMonitor = serverMonitor;
-
-            StartServerMonitor();
+            serverMonitor.ConfigurationSpaceRebuilt += OnConfigurationSpaceRebuilt;
         }
 
-        public object Get(string key)
+        public string Get(string key)
         {
             return _cache.GetOrAdd(key, _underlyingStorage.Get);
-        }
-
-        private void StartServerMonitor()
-        {
-            _serverMonitor.ConfigurationSpaceRebuilt += OnConfigurationSpaceRebuilt;
-            _serverMonitor.Start();
         }
 
         private void OnConfigurationSpaceRebuilt()

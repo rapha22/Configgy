@@ -5,7 +5,7 @@ using StackExchange.Redis;
 
 namespace Configgy.Server
 {
-    public class RedisStorageChangeMonitor : IDisposable
+    public class RedisStorageChangeMonitor : IMonitor
     {
         private const string KeyspaceEventsPrefix = "__keyspace@0__:";
 
@@ -15,7 +15,8 @@ namespace Configgy.Server
         private ILogger _logger;
 
         public ICollection<string> KeysToIgnore { get; private set; }
-        public event Action<string, string> KeyChanged;
+
+        public event ChangeDetectedHandler ChangeDetected;
 
         public RedisStorageChangeMonitor(ConnectionMultiplexer redisConnectionMultiplexer, RedisKeyBuilder keyBuilder, ILogger logger)
         {
@@ -63,14 +64,21 @@ namespace Configgy.Server
                         if (_isPaused) return;
                         
                         var key = channel.ToString().Replace(KeyspaceEventsPrefix, "");
-                        
-                        if (KeysToIgnore.Contains(key)) return;
 
-                        _logger.Info(string.Format("Alteration of the dataset on Redis detected (key: \"{0}\", operation: \"{1}\")", key, operation));
+                        if (KeysToIgnore.Contains(key))
+                        {
+                            _logger.Info("Ignoring change on Redis key " + key);
+                        }
 
-                        if (KeyChanged == null) return;                        
+                        if (ChangeDetected == null) return;                        
                         
-                        KeyChanged(channel, operation);
+                        ChangeDetected(
+                            this,
+                            new ChangeDetectedEventData
+                            {
+                                Description = string.Format("Alteration of the dataset on Redis detected (key: \"{0}\", operation: \"{1}\")", key, operation),
+                            }
+                        );
                     }
                 );        
         }

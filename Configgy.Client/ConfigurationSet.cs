@@ -2,16 +2,23 @@
 {
     public class ConfigurationSet
     {
-        private object _data;
+        private string _content;
+        private IConfigurationSetParser _parser;
 
-        public ConfigurationSet(object configurationSetData)
+        internal ConfigurationSet(string content, IConfigurationSetParser parser)
         {
-            _data = configurationSetData;
+            _content = content;
+            _parser = parser;
         }
 
         public dynamic Get()
         {
-            return _data;
+            return _parser.Parse(_content);
+        }
+
+        public T Get<T>()
+        {
+            return _parser.Parse<T>(_content);
         }
     }
 }

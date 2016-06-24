@@ -61,9 +61,11 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CachedConfigurationSetParserTests.cs" />
     <Compile Include="ConfiggyClientTests.cs" />
     <Compile Include="ConfigurationSetTests.cs" />
-    <Compile Include="Helpers.cs" />
+    <Compile Include="JsonConfigurationSetParserTests.cs" />
+    <Compile Include="Stubs.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="CachedConfigurationSpaceStorageTests.cs" />
     <Compile Include="RedisConfigurationSpaceStorageTests.cs" />
@@ -81,6 +83,10 @@
     <ProjectReference Include="..\Configgy.Common\Configgy.Common.csproj">
       <Project>{680fad48-e5cf-4de8-90f6-8f844d347251}</Project>
       <Name>Configgy.Common</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Configgy.TestUtilities\Configgy.TestUtilities.csproj">
+      <Project>{7af761f5-d56f-4a1c-bed0-63996ccc3efd}</Project>
+      <Name>Configgy.TestUtilities</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

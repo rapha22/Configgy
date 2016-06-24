@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 using Xunit;
 
 namespace Configgy.Client.Tests
@@ -12,7 +8,7 @@ namespace Configgy.Client.Tests
         [Fact]
         public void ShouldCacheValues()
         {
-            var configSpace = new Dictionary<string, object> { { "A", "initial value" } };
+            var configSpace = new Dictionary<string, string> { { "A", "initial value" } };
             var storage = new StubConfigurationSpaceStorage(configSpace);
 
             var client = new CachedConfigurationSpaceStorage(storage, new StubServerMonitor());
@@ -32,7 +28,7 @@ namespace Configgy.Client.Tests
         {
             const string expectedValue = "new value";
 
-            var configSpace = new Dictionary<string, object> { { "A", "initial value" } };
+            var configSpace = new Dictionary<string, string> { { "A", "initial value" } };
             var storage = new StubConfigurationSpaceStorage(configSpace);
             var serverMonitor = new StubServerMonitor();
 
@@ -43,7 +39,10 @@ namespace Configgy.Client.Tests
             configSpace["A"] = expectedValue;
             serverMonitor.TriggerConfigurationSpaceRebuilt();
 
-            Assert.Equal(expectedValue, client.Get("A"));
+            var value = client.Get("A");
+
+            Assert.Equal(expectedValue, value);
+            Assert.Equal(2, storage.AccessCount);
         }
     }
 }

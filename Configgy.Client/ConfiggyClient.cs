@@ -8,19 +8,25 @@ namespace Configgy.Client
     {
         private ConnectionMultiplexer _connectionMultiplexer;
         private IConfigurationSpaceStorage _storage;
+        private IConfigurationSetParser _parser;
 
         public ConfiggyClient(string redisConnectionString, string prefix = null)
         {
             _connectionMultiplexer = ConnectionMultiplexer.Connect(redisConnectionString);            
             var keyBuilder         = new RedisKeyBuilder(prefix);
-            var redisSeverMonitor  = new RedisServerMonitor(_connectionMultiplexer, keyBuilder);
+            var redisServerMonitor = new RedisServerMonitor(_connectionMultiplexer, keyBuilder);
             var redisStorage       = new RedisConfigurationSpaceStorage(_connectionMultiplexer, keyBuilder);
-            _storage               = new CachedConfigurationSpaceStorage(redisStorage, redisSeverMonitor);
+            var jsonParser         = new JsonConfigurationSetParser();
+            
+            _storage = new CachedConfigurationSpaceStorage(redisStorage, redisServerMonitor);
+            _parser = new CachedConfigurationSetParser(jsonParser, redisServerMonitor);
+
+            redisServerMonitor.Start();
         }
 
         public ConfigurationSet GetConfigurationSet(string key)
         {
-            return new ConfigurationSet(_storage.Get(key));
+            return new ConfigurationSet(_storage.Get(key), _parser);
         }
 
         public void Dispose()

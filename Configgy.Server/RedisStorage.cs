@@ -6,26 +6,24 @@ using StackExchange.Redis;
 
 namespace Configgy.Server
 {
-    internal class RedisStorage : IDisposable
+    internal class RedisStorage : IStorage
     {
-        private ConnectionMultiplexer _redisConnectionMultiplexer;
+        private ConnectionMultiplexer _connectionMultiplexer;
         private RedisStorageMonitor _monitor;
         private RedisKeyBuilder _keyBuilder;
-        private int _pulseCheckInterval;
         private ILogger _logger;
 
-        public RedisStorage(string redisConnectionString, ILogger logger, string prefix = null, int pulseCheckInterval = 5000)
+        public RedisStorage(ConnectionMultiplexer connectionMultiplexer, RedisKeyBuilder keyBuilder, RedisStorageMonitor monitor)
         {
-            if (redisConnectionString == null) throw new ArgumentNullException("redisConnectionString");
+            if (connectionMultiplexer == null) throw new ArgumentNullException("connectionMultiplexer");
+            if (keyBuilder == null) throw new ArgumentNullException("keyBuilder");
+            if (monitor == null) throw new ArgumentNullException("monitor");
 
-            var redisOptions = ConfigurationOptions.Parse(redisConnectionString);
-            redisOptions.AllowAdmin = true;
-
-            _redisConnectionMultiplexer = ConnectionMultiplexer.Connect(redisOptions);
-            _keyBuilder = new RedisKeyBuilder(prefix);
-            _pulseCheckInterval = pulseCheckInterval;
-            _logger = logger;
+            _connectionMultiplexer = connectionMultiplexer;
+            _keyBuilder = keyBuilder;
+            _monitor = monitor;
         }
+
 
         public void UploadConfigurationSpace(IDictionary<string, object> configurationSpace)
         {
@@ -39,23 +37,16 @@ namespace Configgy.Server
             }
         }
 
-        public void MonitorChanges(Action actionOnChange)
-        {
-            _monitor = new RedisStorageMonitor(_redisConnectionMultiplexer, _keyBuilder, _logger, _pulseCheckInterval);
-            _monitor.DataSetChanged += actionOnChange;
-            _monitor.Start();
-        }
-
         public void Dispose()
         {
             _monitor.Dispose();
-            _redisConnectionMultiplexer.Dispose();
+            _connectionMultiplexer.Dispose();
         }
 
 
         private void UploadConfigurationSpaceInternal(IDictionary<string, object> configurationSpace)
         {
-            var redis = _redisConnectionMultiplexer.GetDatabase();
+            var redis = _connectionMultiplexer.GetDatabase();
 
             DeleteKeys(pattern: _keyBuilder.BuildKey("*"));
 
@@ -69,10 +60,10 @@ namespace Configgy.Server
 
         private void DeleteKeys(string pattern)
         {
-            foreach (var server in _redisConnectionMultiplexer.GetEndPoints())
+            foreach (var server in _connectionMultiplexer.GetEndPoints())
             {
-                var redisDatabase = _redisConnectionMultiplexer.GetDatabase();
-                var redisServer = _redisConnectionMultiplexer.GetServer(server);
+                var redisDatabase = _connectionMultiplexer.GetDatabase();
+                var redisServer = _connectionMultiplexer.GetServer(server);
 
                 foreach (var key in redisServer.Keys(pattern: pattern))
                 {

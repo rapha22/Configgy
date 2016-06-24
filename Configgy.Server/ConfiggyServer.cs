@@ -1,26 +1,36 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace Configgy.Server
 {
     public class ConfiggyServer : IDisposable
     {
-        private ConfiggyServerOptions _options;
-        private JsonFileConfigurationSource _configSource;
-        private ConfigurationSpaceMerger _merger;
-        private RedisStorage _redisStorage;
-        private ConfigurationFilesMonitor _filesMonitor;
-        private ILogger _logger;
         private bool _started = false;
+        private EventDelayer _eventDelayer;
+        private ConfigurationSpaceMerger _merger;
+        private IConfigurationSource _configSource;
+        private ConfigurationFilesMonitor _filesMonitor;
+        private IStorage _storage;
+        private IEventBroadcaster _eventBroadcaster;
+        private ILogger _logger;
+        private List<IMonitor> _monitors;
 
 
         public ConfiggyServer(ConfiggyServerOptions options, ILogger logger)
         {
-            _options = options;
+            _logger       = logger;
+            _eventDelayer = new EventDelayer(1000, false);
+            _merger       = new ConfigurationSpaceMerger();
+            _monitors     = new List<IMonitor>();
+
+            var redisFactory = new RedisStorageResourcesFactory(options.RedisConnectionString, options.Prefix, logger);
+            _storage = redisFactory.GetStorage();
+            _eventBroadcaster = redisFactory.GetEventBroadcaster();
+            _monitors.AddRange(redisFactory.GetMonitors());
+
             _configSource = new JsonFileConfigurationSource(options.ConfigurationFilesDirectory, options.FilesFilter, logger);
-            _merger = new ConfigurationSpaceMerger();
-            _redisStorage = new RedisStorage(options.RedisConnectionString, logger, options.Prefix);
             _filesMonitor = new ConfigurationFilesMonitor(options.ConfigurationFilesDirectory, options.FilesFilter, logger);
-            _logger = logger;
+            _monitors.Add(_filesMonitor);
 
             GenericExceptionHandler.Initialize(logger);
         }
@@ -55,7 +65,7 @@ namespace Configgy.Server
         {
             _logger.Info("Disposing Configgy server");
 
-            _redisStorage.Dispose();
+            _storage.Dispose();
             _filesMonitor.Dispose();
         }
 
@@ -68,9 +78,11 @@ namespace Configgy.Server
             {
                 var baseConfigurationSpace = _configSource.GetBaseConfigurationSpace();
                 var cs = _merger.CreateMergedConfigurationSpace(baseConfigurationSpace);
-                _redisStorage.UploadConfigurationSpace(cs);
+                _storage.UploadConfigurationSpace(cs);
 
                 _logger.Info("Configuration space building done");
+
+
             }
             catch (Exception ex)
             {
@@ -82,17 +94,14 @@ namespace Configgy.Server
 
         private void MonitorChanges()
         {
-            _redisStorage.MonitorChanges(() =>
+            foreach (var monitor in _monitors)
             {
-                _logger.Info("Changes on Redis dataset detected");
-                BuildConfigurationSpace();
-            });
-            
-            _filesMonitor.MonitorChanges(() =>
-            {
-                _logger.Info("File changes detected");
-                BuildConfigurationSpace();
-            });
+                monitor.ChangeDetected += (source, description) =>
+                {
+                    _logger.Info(description);
+                    _eventDelayer.Trigger(BuildConfigurationSpace);
+                };
+            }
         }
     }
 }

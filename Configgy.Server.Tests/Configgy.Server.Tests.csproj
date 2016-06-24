@@ -67,7 +67,8 @@
     <Compile Include="ConfigurationSpaceMergerTests.cs" />
     <Compile Include="EventDelayerTests.cs" />
     <Compile Include="GenericExceptionHandlerTests.cs" />
-    <Compile Include="Helpers.cs" />
+    <Compile Include="RedisEventBroadcasterTests.cs" />
+    <Compile Include="Stubs.cs" />
     <Compile Include="Integration_ParsingAndMerging.cs" />
     <Compile Include="JsonFileConfigurationSourceTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -112,6 +113,10 @@
     <ProjectReference Include="..\Configgy.Server\Configgy.Server.csproj">
       <Project>{88e9398a-7638-464e-90e2-9b46a1d1930e}</Project>
       <Name>Configgy.Server</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Configgy.TestUtilities\Configgy.TestUtilities.csproj">
+      <Project>{7af761f5-d56f-4a1c-bed0-63996ccc3efd}</Project>
+      <Name>Configgy.TestUtilities</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

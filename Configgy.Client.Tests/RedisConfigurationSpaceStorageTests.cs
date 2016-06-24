@@ -7,21 +7,20 @@ namespace Configgy.Client.Tests
     public class RedisConfigurationSpaceStorageTests
     {
         [Fact]
-        public void Get_ShouldReturnAParsedObject()
+        public void Get_ShouldReturnTheContentOnAGivenKey()
         {
-            const string json = @"{""id"":3, ""name"":""test""}";
+            const string expectedContent = "content";
             const string key = "test_key";
 
             var redisHub = ConnectionMultiplexer.Connect("localhost");
             var keyBuilder = new RedisKeyBuilder("RedisConfigurationSpaceStorageTests");
             var storage = new RedisConfigurationSpaceStorage(redisHub, keyBuilder);
 
-            redisHub.GetDatabase().StringSet(keyBuilder.BuildKey(key), json);
+            redisHub.GetDatabase().StringSet(keyBuilder.BuildKey(key), expectedContent);
 
-            dynamic value = storage.Get(key);
+            var content = storage.Get(key);
 
-            Assert.Equal(3, (int)value.id);
-            Assert.Equal("test", (string)value.name);
+            Assert.Equal(expectedContent, content);
         }
     }
 }

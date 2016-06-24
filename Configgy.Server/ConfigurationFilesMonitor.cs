@@ -1,28 +1,17 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Timers;
 
 namespace Configgy.Server
 {
-    internal class ConfigurationFilesMonitor : IDisposable
+    internal class ConfigurationFilesMonitor : IMonitor
     {
-        private const int DefaultEventDelayTime = 1000;
-
         private string _basePath;
         private FileSystemWatcher _watcher;
-        private EventDelayer _eventDelayer;
         private ILogger _logger;
 
-        public bool IsMonitoring
-        {
-            get { return _watcher.EnableRaisingEvents; }
-        }
+        public event ChangeDetectedHandler ChangeDetected;
 
-        public ConfigurationFilesMonitor(string basePath, string filesFilter, ILogger logger, int eventDelayingMs = DefaultEventDelayTime)
+        public ConfigurationFilesMonitor(string basePath, string filesFilter, ILogger logger)
         {
             if (string.IsNullOrEmpty(basePath)) throw new ArgumentException("The basePath must be provided.", "basePath");
             if (string.IsNullOrEmpty(filesFilter)) throw new ArgumentException("The filesFilter must be provided.", "filesFilter");
@@ -36,34 +25,34 @@ namespace Configgy.Server
                 NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.LastWrite | NotifyFilters.Size
             };
 
-            _eventDelayer = new EventDelayer(eventDelayingMs, true);
+            AttachEventsHandlers();
         }
 
-        public void MonitorChanges(Action actionOnChange)
+        public void MonitorChanges()
         {
             if (_watcher.EnableRaisingEvents)
                 throw new InvalidOperationException("The watcher is already monitoring changes.");
 
-            _watcher.Created += CreateHandler(actionOnChange);
-            _watcher.Changed += CreateHandler(actionOnChange);
-            _watcher.Deleted += CreateHandler(actionOnChange);
-
-            _watcher.Renamed += (_, ev) =>
-            {
-                _logger.Info(string.Format("File event detected: Renamed {0} to {1} (full path: {2})", ev.OldName, ev.Name, ev.FullPath));
-                _eventDelayer.Trigger(actionOnChange);
-            };
-
             _watcher.EnableRaisingEvents = true;
         }
 
-        private FileSystemEventHandler CreateHandler(Action onChange)
+        private void AttachEventsHandlers()
         {
-            return (_, ev) =>
+            _watcher.Created += Trigger;
+            _watcher.Changed += Trigger;
+            _watcher.Deleted += Trigger;
+
+            _watcher.Renamed += (_, ev) =>
             {
-                _logger.Info(string.Format("File event detected: {0} {1}", ev.ChangeType, ev.FullPath));
-                _eventDelayer.Trigger(onChange);
-            };
+                if (ChangeDetected != null)
+                    ChangeDetected(this, string.Format("File event detected: Renamed {0} to {1} (full path: {2})", ev.OldName, ev.Name, ev.FullPath));
+            };        
+        }
+
+        private void Trigger(object sender, FileSystemEventArgs ev)
+        {
+            if (ChangeDetected != null)
+                ChangeDetected(this, string.Format("File event detected: {0} {1}", ev.ChangeType, ev.FullPath));
         }
 
         public void Dispose()

@@ -69,6 +69,10 @@
       <Project>{680fad48-e5cf-4de8-90f6-8f844d347251}</Project>
       <Name>Configgy.Common</Name>
     </ProjectReference>
+    <ProjectReference Include="..\Configgy.TestUtilities\Configgy.TestUtilities.csproj">
+      <Project>{7af761f5-d56f-4a1c-bed0-63996ccc3efd}</Project>
+      <Name>Configgy.TestUtilities</Name>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />

@@ -5,24 +5,23 @@ using StackExchange.Redis;
 
 namespace Configgy.Server
 {
-    public class RedisStoragePulseMonitor : IDisposable
+    public class RedisStoragePulseMonitor : IMonitor
     {
         public const int DefaultPulseCheckInterval = 5000;
         private const string PulseBaseKey = "!_pulse_!";
 
         private ConnectionMultiplexer _redisConnectionMultiplexer;
         private Timer _timer;
-        private ILogger _logger;
 
         public string PulseKey { get; private set; }
-        public event Action PulseMissing;
+        
+        public event ChangeDetectedHandler ChangeDetected;
 
-        public RedisStoragePulseMonitor(ConnectionMultiplexer redisConnectionMultiplexer, RedisKeyBuilder keyBuilder, int checkingIntervalMs, ILogger logger)
+        public RedisStoragePulseMonitor(ConnectionMultiplexer redisConnectionMultiplexer, RedisKeyBuilder keyBuilder, int checkingIntervalMs = DefaultPulseCheckInterval)
         {
             _redisConnectionMultiplexer = redisConnectionMultiplexer;
             PulseKey = keyBuilder.BuildKey(PulseBaseKey);
             _timer = CreatePulseChecker(checkingIntervalMs);
-            _logger = logger;
         }
 
         
@@ -50,16 +49,14 @@ namespace Configgy.Server
             {
                 try
                 {
-                    if (PulseMissing == null) return;
+                    if (ChangeDetected == null) return;
 
                     var redis = _redisConnectionMultiplexer.GetDatabase();
 
                     if (!redis.KeyExists(PulseKey))
                     {
-                        _logger.Info("Pulse not detected on Redis");
-
-                        if (PulseMissing != null)
-                            PulseMissing();
+                        if (ChangeDetected != null)
+                            ChangeDetected(this, new ChangeDetectedEventData { Description = "Pulse not detected on Redis" });
                     }
                 }
                 catch (Exception ex)

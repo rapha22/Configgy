@@ -2,6 +2,6 @@
 {
     public interface IConfigurationSpaceStorage
     {
-        object Get(string key);
+        string Get(string key);
     }
 }

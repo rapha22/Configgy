@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Configgy.Common;
+using Configgy.TestUtilities;
 using StackExchange.Redis;
 using Xunit;
 

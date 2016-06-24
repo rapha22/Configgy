@@ -4,39 +4,32 @@ using StackExchange.Redis;
 
 namespace Configgy.Server
 {
-    public class RedisStorageMonitor : IDisposable
+    public class RedisStorageMonitor : IMonitor
     {
         private const int DefaultEventDelayingTime = 1000;
 
         private RedisStorageChangeMonitor _changeMonitor;
         private RedisStoragePulseMonitor _pulseMonitor;
-        private EventDelayer _eventDelayer;
 
-        public event Action DataSetChanged;
+        public event ChangeDetectedHandler ChangeDetected;
 
         public RedisStorageMonitor(
             ConnectionMultiplexer redisConnectionMultiplexer,
             RedisKeyBuilder keyBuilder,
-            ILogger logger,
-            int pulseCheckIntervalMs = RedisStoragePulseMonitor.DefaultPulseCheckInterval,
-            int eventDelayingMs = DefaultEventDelayingTime
+            ILogger logger
         )
         {
-            _pulseMonitor = new RedisStoragePulseMonitor(redisConnectionMultiplexer, keyBuilder, pulseCheckIntervalMs, logger);
+            _pulseMonitor = new RedisStoragePulseMonitor(redisConnectionMultiplexer, keyBuilder);
             _changeMonitor = new RedisStorageChangeMonitor(redisConnectionMultiplexer, keyBuilder, logger);
             _changeMonitor.KeysToIgnore.Add(_pulseMonitor.PulseKey);
 
-            Action triggerWithDelay = () => _eventDelayer.Trigger(this.Trigger);
-
-            _changeMonitor.KeyChanged += (_, __) => triggerWithDelay();
-            _pulseMonitor.PulseMissing += () => triggerWithDelay();
-
-            _eventDelayer = new EventDelayer(eventDelayingMs, false);
+            _changeMonitor.ChangeDetected += Trigger;
+            _pulseMonitor.ChangeDetected  += Trigger;
         }
 
         public void Start()
         {
-            _pulseMonitor.Start(); //The pulse monitor must start first, or else the pulse key will trigger the changes monitor
+            _pulseMonitor.Start();
             _changeMonitor.Start();
         }
 
@@ -57,10 +50,10 @@ namespace Configgy.Server
             _changeMonitor.Dispose();
         }
 
-        private void Trigger()
+        private void Trigger(IMonitor source, string description)
         {
-            if (DataSetChanged != null)
-                DataSetChanged();
+            if (ChangeDetected != null)
+                ChangeDetected(this, description);
         }
     }
 }

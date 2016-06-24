@@ -1,5 +1,4 @@
 ﻿using Configgy.Common;
-using Newtonsoft.Json;
 using StackExchange.Redis;
 
 namespace Configgy.Client
@@ -15,11 +14,9 @@ namespace Configgy.Client
             _keyBuilder = keyBuilder;
         }
 
-        public object Get(string key)
+        public string Get(string key)
         {
-            var redis = _connectionMultiplexer.GetDatabase();
-            var json = redis.StringGet(_keyBuilder.BuildKey(key));
-            return JsonConvert.DeserializeObject(json);
+            return _connectionMultiplexer.GetDatabase().StringGet(_keyBuilder.BuildKey(key));
         }
     }
 }
