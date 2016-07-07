@@ -68,16 +68,12 @@ namespace Configgy.Server
                         if (KeysToIgnore.Contains(key))
                         {
                             _logger.Info("Ignoring change on Redis key " + key);
+                            return;
                         }
 
-                        if (ChangeDetected == null) return;                        
-                        
-                        ChangeDetected(
+                        ChangeDetected.Trigger(
                             this,
-                            new ChangeDetectedEventData
-                            {
-                                Description = string.Format("Alteration of the dataset on Redis detected (key: \"{0}\", operation: \"{1}\")", key, operation),
-                            }
+                            new ChangeDetectedEventData(string.Format("Alteration of the dataset on Redis detected (key: \"{0}\", operation: \"{1}\")", key, operation))
                         );
                     }
                 );        

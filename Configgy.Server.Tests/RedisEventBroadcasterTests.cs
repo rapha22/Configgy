@@ -31,6 +31,8 @@ namespace Configgy.Server.Tests
                 trigger();
             });
 
+            broadcaster.BroadcastConfigurationSpaceRebuilt();
+
             triggered.Wait(1000);
 
             Assert.Equal(expectedChannel, channel);

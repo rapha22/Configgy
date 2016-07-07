@@ -5,18 +5,21 @@ using Newtonsoft.Json;
 
 namespace Configgy.Server
 {
-    internal class JsonFileConfigurationSource : IConfigurationSource
+    internal class FileSystemConfigurationSource : IConfigurationSource
     {
         private string _baseDirectory;
         private string _filesFilter;
+        private IConfigurationFileParser _parser;
         private ILogger _logger;
 
-        public JsonFileConfigurationSource(string baseDirectory, string filesFilter, ILogger logger)
+        public FileSystemConfigurationSource(string baseDirectory, string filesFilter, IConfigurationFileParser parser, ILogger logger)
         {
             if (baseDirectory == null) throw new ArgumentNullException("baseDirectory");
             if (filesFilter == null) throw new ArgumentNullException("filesFilter");
+            if (parser == null) throw new ArgumentNullException("parser");
 
             _filesFilter = filesFilter;
+            _parser = parser;
             _logger = logger;
 
             try
@@ -45,35 +48,12 @@ namespace Configgy.Server
             foreach (var f in files)
             {
                 _logger.Info("Reading file " + f);
-                result.Add(GetConfigurationSetKey(f), ParseFile(f));
+                result.Add(GetConfigurationSetKey(f), _parser.Parse(f));
             }
 
             _logger.Info("Done reading files");
 
             return result;
-        }
-
-        internal IDictionary<string, object> ParseFile(string path)
-        {
-            using (var reader = new StreamReader(path))
-            using (var jsonReader = new JsonTextReader(reader))
-            {
-                try
-                {
-                    var configurationSet = new JsonSerializer().Deserialize<Dictionary<string, object>>(jsonReader);
-
-                    if (configurationSet != null) return configurationSet;
-
-                    _logger.Warning("File " + path + " is empty");
-
-                    return new Dictionary<string, object>();
-                }
-                catch (JsonReaderException ex)
-                {
-                    _logger.Error("Error reading file " + path + ". Ignoring configuration set contents", ex);
-                    return new Dictionary<string, object>();
-                }
-            }
         }
 
         internal string GetConfigurationSetKey(string configFilePath)

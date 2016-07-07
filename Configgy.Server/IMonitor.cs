@@ -6,17 +6,28 @@ using System.Threading.Tasks;
 
 namespace Configgy.Server
 {
-    public delegate void ChangeDetectedHandler(IMonitor source, string description);
+    public delegate void ChangeDetectedHandler(IMonitor source, ChangeDetectedEventData eventData);
+
+    public static class ChangeDetectedHandlerExtensions
+    {
+        public static void Trigger(this ChangeDetectedHandler handler, IMonitor source, ChangeDetectedEventData eventData)
+        {
+            if (handler != null) handler(source, eventData);
+        }
+    }
 
     public class ChangeDetectedEventData
     {
         public string Description { get; set; }
-        public object Data { get; set; }
+
+        public ChangeDetectedEventData(string description = null)
+        {
+            Description = description;
+        }
     }
 
     public interface IMonitor : IDisposable
     {
-        string Description { get; }
         event ChangeDetectedHandler ChangeDetected;
         void Start();
     }

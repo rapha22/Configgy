@@ -39,10 +39,10 @@ namespace Configgy.Server.Tests
                     new StubLogger()
                 );
 
-                monitor.DataSetChanged += AsyncHelper.CreateCompletionTaskAction(out containerTask);
-                monitor.Start();
-
                 redisHub.GetDatabase().StringSet(keyBuilder.BuildKey(initialKey), "fist value");
+
+                monitor.ChangeDetected += MonitorTestHelper.CreateCompletionTaskAction(out containerTask);
+                monitor.Start();
             }
 
             public override void Dispose()
@@ -109,11 +109,10 @@ namespace Configgy.Server.Tests
                     redisHub,
                     keyBuilder,
                     new StubLogger(),
-                    pulseCheckIntervalMs: 100,
-                    eventDelayingMs: 200
+                    pulseCheckIntervalMs: 100
                 );
 
-                monitor.DataSetChanged += () => triggered = true;
+                monitor.ChangeDetected += (_, __) => triggered = true;
                 monitor.Start();
 
                 Task.Delay(600).Wait();
@@ -130,11 +129,10 @@ namespace Configgy.Server.Tests
                     redisHub,
                     keyBuilder,
                     new StubLogger(),
-                    pulseCheckIntervalMs: 100,
-                    eventDelayingMs: 200
+                    pulseCheckIntervalMs: 100
                 );
 
-                monitor.DataSetChanged += () => triggered = true;
+                monitor.ChangeDetected += (_, __) => triggered = true;
                 monitor.Start();
 
                 RedisHelper.RemoveKeys(redisHub, keyBuilder.BuildKey("*"));
@@ -168,7 +166,7 @@ namespace Configgy.Server.Tests
                     pulseCheckIntervalMs: 250
                 );
 
-                monitor.DataSetChanged += () => triggered = true;
+                monitor.ChangeDetected += (_, __) => triggered = true;
                 monitor.Start();            
             }
 

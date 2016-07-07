@@ -55,8 +55,7 @@ namespace Configgy.Server
 
                     if (!redis.KeyExists(PulseKey))
                     {
-                        if (ChangeDetected != null)
-                            ChangeDetected(this, new ChangeDetectedEventData { Description = "Pulse not detected on Redis" });
+                        ChangeDetected.Trigger(this, new ChangeDetectedEventData("Pulse not detected on Redis"));
                     }
                 }
                 catch (Exception ex)

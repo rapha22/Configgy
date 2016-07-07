@@ -27,16 +27,10 @@ namespace Configgy.Server.Tests
 
 
         [Fact]
-        public void WhenInstantiatingWithNullConnectionString_ShouldThrow()
-        {
-            Assert.Throws<ArgumentNullException>(() => new RedisStorage(null, null));
-        }
-
-        [Fact]
         public void WhenUploadingConfigurationSpace()
         {
             var keyBuilder = new RedisKeyBuilder(prefix);
-            var redisStorage = new RedisStorage(host, new StubLogger(), prefix);
+            var redisStorage = new RedisStorage(redisHub, keyBuilder, new RedisStorageMonitor(redisHub, keyBuilder, new StubLogger()));
             var redis = redisHub.GetDatabase();
             var testKey = keyBuilder.BuildKey("test_key");
             var configurationSpace = new Dictionary<string, object>

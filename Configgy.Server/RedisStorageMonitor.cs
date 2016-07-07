@@ -6,8 +6,6 @@ namespace Configgy.Server
 {
     public class RedisStorageMonitor : IMonitor
     {
-        private const int DefaultEventDelayingTime = 1000;
-
         private RedisStorageChangeMonitor _changeMonitor;
         private RedisStoragePulseMonitor _pulseMonitor;
 
@@ -16,15 +14,16 @@ namespace Configgy.Server
         public RedisStorageMonitor(
             ConnectionMultiplexer redisConnectionMultiplexer,
             RedisKeyBuilder keyBuilder,
-            ILogger logger
+            ILogger logger,
+            int pulseCheckIntervalMs = RedisStoragePulseMonitor.DefaultPulseCheckInterval
         )
         {
-            _pulseMonitor = new RedisStoragePulseMonitor(redisConnectionMultiplexer, keyBuilder);
+            _pulseMonitor = new RedisStoragePulseMonitor(redisConnectionMultiplexer, keyBuilder, pulseCheckIntervalMs);
             _changeMonitor = new RedisStorageChangeMonitor(redisConnectionMultiplexer, keyBuilder, logger);
             _changeMonitor.KeysToIgnore.Add(_pulseMonitor.PulseKey);
 
-            _changeMonitor.ChangeDetected += Trigger;
-            _pulseMonitor.ChangeDetected  += Trigger;
+            _changeMonitor.ChangeDetected += (a, b) => ChangeDetected.Trigger(a, b);
+            _pulseMonitor.ChangeDetected += (a, b) => ChangeDetected.Trigger(a, b);
         }
 
         public void Start()
@@ -48,12 +47,6 @@ namespace Configgy.Server
         {
             _pulseMonitor.Dispose();
             _changeMonitor.Dispose();
-        }
-
-        private void Trigger(IMonitor source, string description)
-        {
-            if (ChangeDetected != null)
-                ChangeDetected(this, description);
         }
     }
 }

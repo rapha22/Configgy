@@ -28,7 +28,7 @@ namespace Configgy.Server
             AttachEventsHandlers();
         }
 
-        public void MonitorChanges()
+        public void Start()
         {
             if (_watcher.EnableRaisingEvents)
                 throw new InvalidOperationException("The watcher is already monitoring changes.");
@@ -44,15 +44,13 @@ namespace Configgy.Server
 
             _watcher.Renamed += (_, ev) =>
             {
-                if (ChangeDetected != null)
-                    ChangeDetected(this, string.Format("File event detected: Renamed {0} to {1} (full path: {2})", ev.OldName, ev.Name, ev.FullPath));
+                ChangeDetected.Trigger(this, new ChangeDetectedEventData(string.Format("File event detected: Renamed {0} to {1} (full path: {2})", ev.OldName, ev.Name, ev.FullPath)));
             };        
         }
 
         private void Trigger(object sender, FileSystemEventArgs ev)
         {
-            if (ChangeDetected != null)
-                ChangeDetected(this, string.Format("File event detected: {0} {1}", ev.ChangeType, ev.FullPath));
+            ChangeDetected.Trigger(this, new ChangeDetectedEventData(string.Format("File event detected: {0} {1}", ev.ChangeType, ev.FullPath)));
         }
 
         public void Dispose()

@@ -11,7 +11,6 @@ namespace Configgy.Server
         private ConnectionMultiplexer _connectionMultiplexer;
         private RedisStorageMonitor _monitor;
         private RedisKeyBuilder _keyBuilder;
-        private ILogger _logger;
 
         public RedisStorage(ConnectionMultiplexer connectionMultiplexer, RedisKeyBuilder keyBuilder, RedisStorageMonitor monitor)
         {

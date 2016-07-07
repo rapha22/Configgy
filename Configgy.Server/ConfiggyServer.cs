@@ -28,7 +28,8 @@ namespace Configgy.Server
             _eventBroadcaster = redisFactory.GetEventBroadcaster();
             _monitors.AddRange(redisFactory.GetMonitors());
 
-            _configSource = new JsonFileConfigurationSource(options.ConfigurationFilesDirectory, options.FilesFilter, logger);
+            var jsonFileParser = new JsonConfigurationFileParser(logger);
+            _configSource = new FileSystemConfigurationSource(options.ConfigurationFilesDirectory, options.FilesFilter, jsonFileParser, logger);
             _filesMonitor = new ConfigurationFilesMonitor(options.ConfigurationFilesDirectory, options.FilesFilter, logger);
             _monitors.Add(_filesMonitor);
 
@@ -96,9 +97,9 @@ namespace Configgy.Server
         {
             foreach (var monitor in _monitors)
             {
-                monitor.ChangeDetected += (source, description) =>
+                monitor.ChangeDetected += (source, ev) =>
                 {
-                    _logger.Info(description);
+                    _logger.Info(ev.Description);
                     _eventDelayer.Trigger(BuildConfigurationSpace);
                 };
             }

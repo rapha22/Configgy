@@ -37,4 +37,12 @@ namespace Configgy.Server.Tests
             _errors.Add(Tuple.Create(null as string, ex));
         }
     }
+
+    public class StubConfigurationFileParser : IConfigurationFileParser
+    {
+        public IDictionary<string, object> Parse(string path)
+        {
+            return new Dictionary<string, object>();
+        }
+    }
 }
